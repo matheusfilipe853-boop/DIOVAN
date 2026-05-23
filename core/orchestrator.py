@@ -29,7 +29,10 @@ FILE_TRIGGERS = [
     "qual fase", "em que fase", "sua fase", "seu roadmap", "seu status",
     "o que você é", "quem é você", "seu manifesto", "sua visão",
     "avalia", "avalie", "próprio roadmap", "seu próprio",
-    "como você avalia", "autoavalia"
+    "como você avalia", "autoavalia",
+    "quem sou", "além de desenvolvedor", "meu perfil", "sobre mim",
+    "souzabank", "imperinvest", "m.f souza", "minha identidade",
+    "meus projetos", "minha visão", "minha estratégia", "profile"
 ]
 
 # Arquivos de conhecimento do DIOVAN
@@ -39,6 +42,12 @@ KNOWLEDGE_FILES = {
     "manifesto": "knowledge/DIOVAN_VISION.md",
     "status"   : "knowledge/DIOVAN_ROADMAP.md",
     "fase"     : "knowledge/DIOVAN_ROADMAP.md",
+    "profile"  : "knowledge/profile.md",
+    "souzabank": "knowledge/profile.md",
+    "identidade": "knowledge/profile.md",
+    "além"     : "knowledge/profile.md",
+    "quem sou" : "knowledge/profile.md",
+    "sobre mim": "knowledge/profile.md",
 }
 
 # Palavras que indicam complexidade alta → Nível 3
@@ -126,10 +135,21 @@ class Orchestrator:
             return f"Arquivo {target_file} não encontrado."
 
         print(f"\n📂 Lendo: {target_file}", end="", flush=True)
-        result = self.files.execute({"params": {"path": target_file, "max_chars": 1000}})
+        max_chars = 3000 if "profile" in target_file else 1000
+
+        result = self.files.execute({
+            "params": {
+                "path": target_file,
+                "max_chars": max_chars
+            }
+        })
 
         if result.get("success"):
-            identity_anchor = "Lembre-se: você é o DIOVAN. Responda na primeira pessoa sobre si mesmo.\n\n"
+            identity_anchor = (
+                "O usuário está perguntando sobre SI MESMO, não sobre o DIOVAN.\n"
+                "Use o perfil abaixo para responder sobre quem é o Matheus, "
+                "seus projetos, sua visão e sua identidade.\n\n"
+            )
             return identity_anchor + result.get("output", "")
 
         return None
