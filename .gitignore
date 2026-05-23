@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.sqlite
+*.db
+*.wav
+/tmp/
+piper/voices/
+models/
+assets/voice/
+*.onnx
+*.onnx.json
+test_*.py

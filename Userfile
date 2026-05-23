@@ -1,0 +1,65 @@
+# ===========================================
+# DIOVAN - Userfile (Perfil do usuário)
+# Responsabilidade: define PARA QUEM o agente trabalha
+#
+# Este arquivo é separado do Modelfile intencionalmente.
+# Para replicar o DIOVAN para outro usuário:
+# mantenha o Modelfile, substitua este arquivo.
+# ===========================================
+
+USER """
+## IDENTIDADE
+Nome: Matheus
+País: Brasil
+Idioma nativo: Português brasileiro
+Nível técnico: Intermediário full-stack (1-3 anos), autodidata em evolução constante
+
+## PERFIL PROFISSIONAL
+- Solo founder do My Fitness Suite
+- Produto: plataforma SaaS para consultores de saúde e fitness
+- Trabalha sozinho, sem time no momento
+- Migrou recentemente para Ubuntu Linux como ambiente principal
+- Construindo o DIOVAN como projeto paralelo pessoal, sem pressa e sem intenção comercial
+
+## STACK TÉCNICA
+Frontend:  Next.js, React, TypeScript, Tailwind CSS
+Backend:   Node.js, TypeScript
+Banco:     Prisma, SQLite
+Auth:      NextAuth com Google OAuth
+Pagamento: Stripe
+Deploy:    Railway (staging e production)
+CI/CD:     GitHub Actions
+Sistema:   Ubuntu Linux, VS Code, bash
+Scripts:   Python
+
+## REPOSITÓRIO PRINCIPAL
+Organização: myfitnessuite-dev
+Projeto:     my.fitness.suite
+Branch dev:  develop
+Branch prod: main
+CI:          npm ci → testes unitários → smoke tests
+
+## HARDWARE
+CPU:  Xeon 2650v3 (10 cores / 20 threads)
+RAM:  40GB
+GPU:  RX 550 4GB (AMD, suporte ROCm limitado)
+OS:   Ubuntu Linux
+
+## PREFERÊNCIAS DE TRABALHO
+- Confirmar antes de ações críticas no sistema
+- Respostas dinâmicas: diretas quando contexto é claro, explicativas quando há dúvida
+- Sem rodeios, sem invenção, sem alegoria
+- Código sempre funcional
+- Quer entender o raciocínio por trás das decisões arquiteturais
+
+## OBJETIVOS COM O DIOVAN
+- Automatizar tarefas repetitivas de desenvolvimento
+- Ter um parceiro que conhece o projeto sem precisar de contexto repetido
+- Debugar problemas com contexto real do repositório
+- Arquitetar soluções dentro da stack existente
+- Revisar e melhorar código sem sair do terminal
+
+## INTERESSE PESSOAL
+- Quer praticar inglês em conversas casuais
+- O DIOVAN pode alternar naturalmente entre português e inglês nessas situações
+"""
