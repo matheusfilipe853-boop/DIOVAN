@@ -1,0 +1,92 @@
+[
+  {
+    "timestamp": "2026-05-24 12:40:42",
+    "level": "INFO",
+    "message": "DIOVAN stand by iniciado"
+  },
+  {
+    "timestamp": "2026-05-24 12:40:42",
+    "level": "INFO",
+    "message": "Encontrados 6 arquivos Rust para analisar"
+  },
+  {
+    "timestamp": "2026-05-24 12:40:42",
+    "level": "INFO",
+    "message": "Processando: string.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:41:56",
+    "level": "INFO",
+    "message": "Concluído: string.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:41:56",
+    "level": "INFO",
+    "message": "Processando: smart-pointers.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:43:46",
+    "level": "INFO",
+    "message": "Concluído: smart-pointers.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:43:46",
+    "level": "INFO",
+    "message": "Processando: resources.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:45:37",
+    "level": "INFO",
+    "message": "Concluído: resources.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:45:37",
+    "level": "INFO",
+    "message": "Processando: tips.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:47:21",
+    "level": "INFO",
+    "message": "Concluído: tips.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:47:21",
+    "level": "INFO",
+    "message": "Processando: README.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:48:41",
+    "level": "INFO",
+    "message": "Concluído: README.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:48:41",
+    "level": "INFO",
+    "message": "Processando: ide-for-rust.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:50:34",
+    "level": "INFO",
+    "message": "Concluído: ide-for-rust.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:50:34",
+    "level": "INFO",
+    "message": "Gerando síntese de conhecimento Rust..."
+  },
+  {
+    "timestamp": "2026-05-24 12:52:34",
+    "level": "ERROR",
+    "message": "Erro Ollama: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=120)"
+  },
+  {
+    "timestamp": "2026-05-24 12:52:34",
+    "level": "INFO",
+    "message": "Base de conhecimento Rust salva em: knowledge/rust_knowledge.md"
+  },
+  {
+    "timestamp": "2026-05-24 12:52:34",
+    "level": "INFO",
+    "message": "Stand by concluído. 6 arquivo(s) processado(s)."
+  }
+]

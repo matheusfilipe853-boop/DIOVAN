@@ -13,3 +13,5 @@ assets/voice/
 *.onnx
 *.onnx.json
 test_*.py
+.env.weights
+.env.weights

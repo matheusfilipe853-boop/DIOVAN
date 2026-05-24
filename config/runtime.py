@@ -10,7 +10,7 @@ load_dotenv()
 
 # Ollama timeouts
 OLLAMA_CONNECT_TIMEOUT = int(os.getenv("OLLAMA_CONNECT_TIMEOUT", "5"))
-OLLAMA_READ_TIMEOUT    = int(os.getenv("OLLAMA_READ_TIMEOUT", "120"))
+OLLAMA_READ_TIMEOUT    = int(os.getenv("OLLAMA_READ_TIMEOUT", "666"))
 
 # Context size per model level
 OLLAMA_CTX_FAST    = int(os.getenv("OLLAMA_CTX_FAST",    "2048"))
