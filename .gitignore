@@ -15,3 +15,4 @@ assets/voice/
 test_*.py
 .env.weights
 .env.weights
+knowledge/rust-base/
