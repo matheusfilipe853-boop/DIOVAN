@@ -1,0 +1,90 @@
+{
+  "name": "DIOVAN — 01 Pipe Runner Agendado",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Cron Diário",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "run-pipes",
+      "name": "Disparar Pipes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5680/pipe",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "{\"pipe\": \"all\"}"
+      }
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram — Iniciado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"🚀 DIOVAN — pipes iniciados\\nrun: {{ $json.run_id }} (pid {{ $json.pid }})\" }"
+      }
+    }
+  ],
+  "connections": {
+    "Cron Diário": {
+      "main": [
+        [
+          {
+            "node": "Disparar Pipes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Disparar Pipes": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Iniciado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

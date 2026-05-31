@@ -1,0 +1,142 @@
+{
+  "name": "DIOVAN — 05 Integração de Leads",
+  "nodes": [
+    {
+      "id": "sched",
+      "name": "Check a cada 1h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sheets",
+      "name": "Ler Leads (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "notes": "CONFIGURAR: conectar credencial Google + selecionar a planilha de leads (MFS/IG) e a aba"
+    },
+    {
+      "id": "filter",
+      "name": "Somente leads novos",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "novo",
+              "leftValue": "={{ $json['Status contato'] || $json['status'] || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "notify",
+      "name": "Notificar lead novo (Telegram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"🎯 Lead novo\\nHandle: {{ $json.handle || $json.Handle }}\\nSeguidores: {{ $json.seguidores || $json.Seguidores }}\\nEmail: {{ $json.email || $json.Email || '—' }}\" }"
+      },
+      "notes": "Ação default. Extensível: trocar/adicionar nó HTTP para CRM (POST), email (SMTP/SendGrid) ou WhatsApp."
+    }
+  ],
+  "connections": {
+    "Check a cada 1h": {
+      "main": [
+        [
+          {
+            "node": "Ler Leads (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Leads (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Somente leads novos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Somente leads novos": {
+      "main": [
+        [
+          {
+            "node": "Notificar lead novo (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

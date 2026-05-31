@@ -1,0 +1,166 @@
+{
+  "name": "DIOVAN — 02 Overnight Controlado",
+  "nodes": [
+    {
+      "id": "start-trigger",
+      "name": "Iniciar Overnight 00h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "stop-trigger",
+      "name": "Encerrar Overnight 06h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        500
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "start-ig",
+      "name": "Iniciar IG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5680/pipe",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "{\"pipe\": \"ig\"}"
+      }
+    },
+    {
+      "id": "notify-start",
+      "name": "Telegram — Overnight Iniciado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"🌙 DIOVAN — overnight iniciado\\nPID: {{ $json.pid }}\" }"
+      }
+    },
+    {
+      "id": "stop-ig",
+      "name": "Encerrar IG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5680/pipe",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "{\"pipe\": \"status\"}"
+      }
+    },
+    {
+      "id": "notify-stop",
+      "name": "Telegram — Overnight Encerrado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        500
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"☀️ DIOVAN — overnight encerrado (06h)\\n{{ JSON.stringify($json) }}\" }"
+      }
+    }
+  ],
+  "connections": {
+    "Iniciar Overnight 00h": {
+      "main": [
+        [
+          {
+            "node": "Iniciar IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar IG": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Overnight Iniciado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encerrar Overnight 06h": {
+      "main": [
+        [
+          {
+            "node": "Encerrar IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Encerrar IG": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Overnight Encerrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}
