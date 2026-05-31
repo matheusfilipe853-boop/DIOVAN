@@ -1,0 +1,171 @@
+#!/bin/bash
+# DIOVAN pipe — aciona pipelines de automação
+#
+# Uso:
+#   pipe                          Roda todos os pipes (isp + mfs)
+#   pipe isp                      Só ISP prospector
+#   pipe mfs                      Só MFS prospector
+#   pipe overnight                Prospecção overnight (meta 500)
+#   pipe overnight --batch 20     Com parâmetros customizados
+#   pipe overnight --meta 50 --sleep 60
+#   pipe status                   Estado dos pipes
+#   pipe list                     Lista pipes disponíveis
+
+set -e
+
+DIOVAN_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$DIOVAN_DIR"
+
+PYTHON="$DIOVAN_DIR/venv/bin/python3"
+
+if [ ! -x "$PYTHON" ]; then
+  echo "Erro: $PYTHON não encontrado"
+  exit 1
+fi
+
+cmd="${1:-all}"
+shift 2>/dev/null || true
+
+case "$cmd" in
+
+  all|"")
+    echo "→ Rodando todos os pipes (isp + mfs + ig)..."
+    "$PYTHON" diovan_runner.py "$@"
+    ;;
+
+  isp)
+    echo "→ Pipe ISP..."
+    "$PYTHON" diovan_runner.py --only isp "$@"
+    ;;
+
+  mfs)
+    echo "→ Pipe MFS..."
+    "$PYTHON" diovan_runner.py --only mfs "$@"
+    ;;
+
+  ig)
+    echo "→ Pipe IG Prospector (personal trainers)..."
+    "$PYTHON" diovan_runner.py --only ig "$@"
+    ;;
+
+  overnight)
+    echo "→ Prospecção overnight standalone (CLI args)..."
+    mkdir -p logs/overnight
+    OAUTHLIB_RELAX_TOKEN_SCOPE=1 "$PYTHON" -m packages.run_overnight "$@" \
+      2>&1 | tee "logs/overnight/$(date +%Y-%m-%d_%H-%M).log"
+    ;;
+
+  status)
+    # Sessão Playwright: o arquivo existir NÃO significa sessão válida.
+    # Sessão Instagram velha (sem renovar) provavelmente expirou → marca stale.
+    if [ -f .env.users/playwright/session.json ]; then
+      pw_age=$(( ($(date +%s) - $(stat -c %Y .env.users/playwright/session.json)) / 3600 ))
+      pw_status="salva"
+      [ "$pw_age" -gt 24 ] && pw_stale="true" || pw_stale="false"
+    else
+      pw_age=0
+      pw_status="ausente"
+      pw_stale="false"
+    fi
+
+    # Handles VISTOS = dedup histórico da busca (não são leads salvos!)
+    handles_vistos=0
+    for f in .env.users/*/seen_handles.json; do
+      [ -f "$f" ] || continue
+      n=$("$PYTHON" -c "import json; print(len(json.load(open('$f'))))" 2>/dev/null || echo 0)
+      handles_vistos=$(( handles_vistos + n ))
+    done
+
+    # Último run REAL registrado pela API (atividade de fato)
+    ultimo_run=$("$PYTHON" -c "
+import json, glob, os
+fs = sorted(glob.glob('logs/api/*.json'), key=os.path.getmtime, reverse=True)
+if fs:
+    m = json.load(open(fs[0]))
+    print(f\"{m.get('pipe','?')} — {m.get('status','?')} ({m.get('finished_at') or m.get('started_at','')[:16]})\")
+else:
+    print('nenhum run registrado')
+" 2>/dev/null || echo "nenhum run registrado")
+
+    if [[ "$*" == *"--json"* ]]; then
+      "$PYTHON" -c "
+import json
+print(json.dumps({
+  'playwright_session': '$pw_status',
+  'playwright_age_h': $pw_age,
+  'playwright_stale': '$pw_stale' == 'true',
+  'handles_vistos': $handles_vistos,
+  'handles_obs': 'dedup historico da busca — NAO sao leads salvos',
+  'ultimo_run': '''$ultimo_run''',
+  'diovan_dir': '$DIOVAN_DIR'
+}, ensure_ascii=False))
+"
+    else
+      echo "DIOVAN — status"
+      echo ""
+      if [ "$pw_status" = "salva" ]; then
+        echo "  Sessão Playwright: salva (há ${pw_age}h)$([ "$pw_stale" = "true" ] && echo " — provavelmente EXPIRADA")"
+      else
+        echo "  Sessão Playwright: ausente"
+      fi
+      echo "  Handles vistos (dedup, não leads): $handles_vistos"
+      echo "  Último run: $ultimo_run"
+    fi
+    ;;
+
+  list)
+    cat << 'HELP_EOF'
+
+  Pipes disponíveis:
+
+    isp                  ISP prospector — scraping Anatel + enriquecimento CNPJ
+    mfs                  MFS prospector — YouTube comments + IG enrichment
+    ig                   IG prospector — personal trainers via DDGS + Playwright
+    all                  Todos os pipes sequencialmente (padrão)
+    all --parallel       ISP + MFS + IG simultâneos em processos isolados
+    overnight            IG prospector standalone com CLI args (--batch, --meta, --sleep)
+
+  Config do ig via env vars (.env):
+    IG_BATCH_SIZE     handles por ciclo      (default: 50)
+    IG_META_TOTAL     meta de leads válidos  (default: 500)
+    IG_SLEEP_BASE     sleep entre ciclos (s) (default: 90)
+
+  Opções overnight (standalone):
+    --batch N    handles por ciclo
+    --meta  N    meta de leads válidos
+    --sleep S    sleep base entre ciclos (s)
+
+  Exemplos:
+    pipe isp
+    pipe mfs
+    pipe ig
+    pipe all
+    pipe all --parallel
+    pipe overnight --batch 20 --meta 100
+
+HELP_EOF
+    ;;
+
+  help|--help|-h)
+    cat << 'HELP_EOF'
+
+  pipe [comando] [args...]
+
+    all                  Todos os pipes (padrão)
+    isp                  Só ISP prospector
+    mfs                  Só MFS prospector
+    overnight [args]     Prospecção overnight
+
+    status               Estado atual dos pipes
+    list                 Lista pipes e opções
+
+HELP_EOF
+    ;;
+
+  *)
+    echo "Pipe desconhecido: $cmd"
+    echo "Use: pipe list"
+    exit 1
+    ;;
+
+esac
