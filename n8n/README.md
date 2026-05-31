@@ -72,22 +72,21 @@ As três camadas:
 |---|---|
 | `06_linkedin_content.json` | Claude gera rascunho → Telegram p/ aprovação (semi-auto) |
 
-**Agente conversacional** (comanda os pipes por linguagem natural):
-| Arquivo | Fluxo |
-|---|---|
-| `07_telegram_agent.json` | Telegram Trigger → `POST /agent` → Telegram reply |
+**Agente conversacional Telegram** — NÃO é workflow n8n, é bot Python local
+(`diovan_bot.py` + `diovan_agent.py`). O Telegram Trigger do n8n exige webhook
+HTTPS público, que o n8n local não tem; o bot resolve com long-polling nativo.
 
-O agente vive **na máquina** (`diovan_agent.py`, Claude tool use). Você fala
-em linguagem natural no Telegram ("bora buscar uns personal trainer", "como tá
-indo?") e ele decide qual pipe rodar / consulta status / responde — tudo local.
-O n8n é só o transporte Telegram ↔ API. Requer `ANTHROPIC_API_KEY` no `.env.user`
-do DIOVAN (a API carrega no startup) e credencial Telegram API no nó Trigger.
+Sobe junto com a API (`make api-start`) se `TELEGRAM_BOT_TOKEN` + `ANTHROPIC_API_KEY`
+estiverem disponíveis. Você fala em linguagem natural no Telegram e o agente
+(Claude tool use) decide o que rodar / consulta status — tudo na máquina.
 
 ```
 Você (Telegram):  bora buscar uns personal trainer
-   → [Telegram Trigger] → [POST /agent] → Claude decide → run_pipe(ig) LOCAL
-   → [Telegram]  "Disparei o ig, run abc123."
+   → diovan_bot (long-polling) → diovan_agent (Claude) → run_pipe(ig) LOCAL
+   → Telegram:  "Disparei o ig, run abc123."
 ```
+
+Trava de segurança: só responde ao `TELEGRAM_CHAT_ID` configurado.
 
 ## Variáveis de ambiente
 

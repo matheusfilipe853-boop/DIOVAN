@@ -56,6 +56,8 @@ def _load_env() -> None:
     user_file = DIOVAN_DIR / ".diovan_user"
     user = user_file.read_text(encoding="utf-8").strip() if user_file.exists() else "default"
     _parse(DIOVAN_DIR / ".env.users" / user / ".env.user", override=True)
+    # n8n/.env.n8n traz TELEGRAM_BOT_TOKEN/CHAT_ID e ANTHROPIC_API_KEY (sem sobrescrever)
+    _parse(DIOVAN_DIR / "n8n" / ".env.n8n", override=False)
 
 
 def _now() -> str:
@@ -240,11 +242,23 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     _load_env()
+
+    # Bot Telegram (long-polling local) — sobe se houver token e agente
+    if os.getenv("TELEGRAM_BOT_TOKEN") and os.getenv("ANTHROPIC_API_KEY"):
+        import threading
+        import diovan_bot
+        threading.Thread(
+            target=diovan_bot.poll_loop,
+            args=(lambda msg: _agent_reply(msg),),
+            daemon=True,
+        ).start()
+
     server = HTTPServer(("127.0.0.1", PORT), Handler)
     print(f"[API] DIOVAN API rodando em http://127.0.0.1:{PORT}")
     print(f"[API] DIOVAN_DIR: {DIOVAN_DIR}")
     print(f"[API] Runs em: {RUNS_DIR}")
     print(f"[API] Agente: {'ON' if os.getenv('ANTHROPIC_API_KEY') else 'OFF (sem ANTHROPIC_API_KEY)'}")
+    print(f"[API] Bot Telegram: {'ON' if os.getenv('TELEGRAM_BOT_TOKEN') and os.getenv('ANTHROPIC_API_KEY') else 'OFF'}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
