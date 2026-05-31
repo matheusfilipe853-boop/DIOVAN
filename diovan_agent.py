@@ -14,7 +14,9 @@ Uso:
 import json
 import os
 
-MODEL = os.getenv("DIOVAN_AGENT_MODEL", "claude-sonnet-4-6")
+# Haiku dá conta: escopo fechado (interpretar comando → run_pipe/get_status).
+# Override via DIOVAN_AGENT_MODEL se precisar de mais capacidade.
+MODEL = os.getenv("DIOVAN_AGENT_MODEL", "claude-haiku-4-5-20251001")
 
 SYSTEM = """Você é o operador do DIOVAN — o sistema de prospecção do Matheus — falando pelo Telegram.
 
