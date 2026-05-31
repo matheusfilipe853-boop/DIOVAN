@@ -25,13 +25,15 @@ import os
 import subprocess
 import threading
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 DIOVAN_DIR = Path(__file__).parent
 PORT       = int(os.getenv("DIOVAN_API_PORT", "5680"))
 RUNS_DIR   = DIOVAN_DIR / "logs" / "api"
+TZ         = ZoneInfo(os.getenv("DIOVAN_TZ", "America/Sao_Paulo"))
 
 # Bases de pipe permitidas (a primeira palavra do comando)
 ALLOWED_BASE = {"isp", "mfs", "ig", "all"}
@@ -61,7 +63,8 @@ def _load_env() -> None:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    # Horário de Brasília com offset explícito (ex: 2026-05-31T17:15:16-03:00)
+    return datetime.now(TZ).isoformat(timespec="seconds")
 
 
 def _run_meta_path(run_id: str) -> Path:
@@ -107,7 +110,7 @@ def _status_snapshot() -> dict:
 
 def _spawn_pipe(pipe: str) -> dict:
     """Dispara o pipe em background, registra metadata e acompanha o exit code."""
-    run_id   = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
+    run_id   = f"{datetime.now(TZ).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
     log_path = RUNS_DIR / f"{run_id}.log"
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
