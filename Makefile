@@ -16,12 +16,17 @@ stop:
 	pkill ollama
 
 api-start:
-	@mkdir -p logs
-	python3 diovan_api.py &
-	@echo "DIOVAN API iniciada em http://127.0.0.1:5679"
+	@mkdir -p logs/api
+	venv/bin/python3 diovan_api.py
 
 api-stop:
 	@pkill -f "diovan_api.py" 2>/dev/null && echo "API encerrada" || echo "API não estava rodando"
+
+api-install:
+	bash bin/api-setup.sh
+
+api-logs:
+	@journalctl -u diovan-api -f 2>/dev/null || tail -f logs/api/api.log
 
 n8n-setup:
 	bash n8n/setup.sh
