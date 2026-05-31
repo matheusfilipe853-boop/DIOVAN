@@ -1,0 +1,130 @@
+{
+  "name": "DIOVAN — 03 Monitor de Saúde",
+  "nodes": [
+    {
+      "id": "health-cron",
+      "name": "Check a cada 30min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-status",
+      "name": "Status DIOVAN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://127.0.0.1:5680/status"
+      }
+    },
+    {
+      "id": "check-silence",
+      "name": "Log Velho?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "age-check",
+              "leftValue": "={{ .age_min || 9999 }}",
+              "rightValue": 30,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "alert",
+      "name": "Telegram — Alerta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        180
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"⚠️ DIOVAN silencioso\\nHandles: {{ $json.total_handles }}\\nPlaywright: {{ $json.playwright }}\" }"
+      }
+    }
+  ],
+  "connections": {
+    "Check a cada 30min": {
+      "main": [
+        [
+          {
+            "node": "Status DIOVAN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status DIOVAN": {
+      "main": [
+        [
+          {
+            "node": "Log Velho?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Velho?": {
+      "main": [
+        [
+          {
+            "node": "Telegram — Alerta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

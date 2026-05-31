@@ -1,0 +1,84 @@
+{
+  "name": "DIOVAN — 04 Webhook Manual",
+  "nodes": [
+    {
+      "id": "webhook-in",
+      "name": "Webhook DIOVAN",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "diovan-pipe-trigger",
+      "parameters": {
+        "path": "diovan",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "call-api",
+      "name": "Chamar API DIOVAN",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:5680/pipe",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"pipe\": \"{{ $json.body.pipe }}\" }"
+      }
+    },
+    {
+      "id": "respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook DIOVAN": {
+      "main": [
+        [
+          {
+            "node": "Chamar API DIOVAN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar API DIOVAN": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "name": "DIOVAN — 07 Agente Telegram",
+  "nodes": [
+    {
+      "id": "tg-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "notes": "CONFIGURAR: conectar credencial Telegram API (mesmo bot do BotFather). Long-polling — funciona local sem expor porta."
+    },
+    {
+      "id": "agent",
+      "name": "Agente DIOVAN (local)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DIOVAN_API_URL || 'http://127.0.0.1:5680' }}/agent",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"message\": {{ JSON.stringify($json.message.text) }} }",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "notes": "Manda a mensagem livre pro agente local (Claude tool use). Ele decide e executa NA MÁQUINA. Devolve {reply, actions}."
+    },
+    {
+      "id": "reply",
+      "name": "Responder no Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $('Telegram Trigger').item.json.message.chat.id }}\", \"text\": {{ JSON.stringify($json.reply) }} }"
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Agente DIOVAN (local)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente DIOVAN (local)": {
+      "main": [
+        [
+          {
+            "node": "Responder no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

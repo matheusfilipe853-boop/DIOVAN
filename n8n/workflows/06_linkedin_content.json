@@ -1,0 +1,110 @@
+{
+  "name": "DIOVAN — 06 Esteira de Conteudo LinkedIn",
+  "nodes": [
+    {
+      "id": "sched",
+      "name": "Seg/Qua/Sex 09h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1,3,5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "claude",
+      "name": "Gerar rascunho (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1200,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Voce e o estrategista de conteudo do My Fitness Suite (mfSuite!), SaaS de gestao financeira para personal trainers e consultores fitness no Brasil. Gere UM post para LinkedIn (max 1300 caracteres, tom direto, sem hashtags em excesso, foco em dor real de gestao: cobranca, inadimplencia, planilha, organizacao de alunos). Comece com um gancho forte na primeira linha. Termine com uma pergunta que gere comentario. Responda APENAS com o texto do post, sem titulo nem aspas.\"\n  }]\n}"
+      },
+      "notes": "Requer ANTHROPIC_API_KEY no .env.n8n. Insumo pode evoluir: puxar dores reais via HTTP GET na API DIOVAN (comentarios MFS)."
+    },
+    {
+      "id": "approve",
+      "name": "Enviar p/ aprovacao (Telegram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"📝 RASCUNHO LinkedIn — revisar e publicar:\\n\\n{{ $json.content[0].text }}\", \"parse_mode\": \"HTML\" }"
+      },
+      "notes": "Semi-automatico: fundador revisa e publica. FASE 2: publicacao automatica via LinkedIn API (requer OAuth/app aprovado) + no de aprovacao com Wait."
+    }
+  ],
+  "connections": {
+    "Seg/Qua/Sex 09h": {
+      "main": [
+        [
+          {
+            "node": "Gerar rascunho (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar rascunho (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Enviar p/ aprovacao (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "instanceId": "diovan"
+  }
+}

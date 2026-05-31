@@ -2,7 +2,20 @@ venv/
 __pycache__/
 *.pyc
 *.pyo
+
+# Segredos de usuários — nunca commitar
+.env.users/
+.env.users/**/.env.user
+.env.users/**/ig_session.json
+.env.public
+.env.public.*
+.env.weights
+.webui_secret_key
+ig_session.json
+
+# .env raiz legado — remover após migração completa
 .env
+*.env
 *.sqlite
 *.db
 *.wav
@@ -13,6 +26,8 @@ assets/voice/
 *.onnx
 *.onnx.json
 test_*.py
-.env.weights
-.env.weights
-knowledge/rust-base/
+
+# n8n — credenciais e runtime (nunca versionar)
+n8n/.env.n8n
+n8n/data/
+logs/api/

@@ -18,6 +18,9 @@ PyAudio==0.2.14
 python-dotenv==1.2.2
 regex==2026.5.9
 requests==2.34.2
+anthropic
+ddgs
+instagrapi
 setuptools==70.2.0
 sympy==1.14.0
 tiktoken==0.13.0
