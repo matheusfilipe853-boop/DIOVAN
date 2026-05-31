@@ -27,6 +27,7 @@ After=network.target
 Type=simple
 User=$USER
 WorkingDirectory=$DIOVAN_DIR
+Environment=PYTHONUNBUFFERED=1
 ExecStart=$PYTHON $DIOVAN_DIR/diovan_api.py
 Restart=on-failure
 RestartSec=10
