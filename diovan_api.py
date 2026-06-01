@@ -10,8 +10,9 @@ Endpoints:
   GET  /status              → status agregado dos pipes (seen handles, playwright)
   GET  /status/{run_id}     → estado de um run específico (running|done|failed)
   GET  /runs                → histórico dos runs recentes
-  POST /pipe  {"pipe": ...} → dispara pipe (fire-and-forget), retorna {run_id, pid}
-  POST /agent {"message":}  → agente conversacional (Claude tool use) — decide e executa
+  POST /pipe   {"pipe": ...}        → dispara pipe (fire-and-forget), retorna {run_id, pid}
+  POST /agent  {"message":}         → agente conversacional (Claude tool use)
+  POST /search {"query","max_results"} → busca web DDGS (esteira de conteúdo LinkedIn)
 
 Pipes aceitos: isp, mfs, ig, all, "all --parallel", status
 
@@ -106,6 +107,29 @@ def _status_snapshot() -> dict:
         return json.loads(out.strip())
     except Exception as e:
         return {"error": str(e)}
+
+
+def _web_search(query: str, max_results: int = 5) -> dict:
+    """Busca web genérica via DDGS (DuckDuckGo). Stateless.
+    Usada pela esteira de conteúdo LinkedIn para enriquecer o tema."""
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        return {"error": "ddgs não instalado (pip install ddgs)", "results": []}
+    try:
+        with DDGS() as ddgs:
+            hits = list(ddgs.text(query, max_results=max(1, min(max_results, 15))))
+        results = [
+            {
+                "title": h.get("title", ""),
+                "body":  h.get("body", ""),
+                "href":  h.get("href", ""),
+            }
+            for h in hits
+        ]
+        return {"query": query, "count": len(results), "results": results}
+    except Exception as e:
+        return {"error": str(e), "query": query, "results": []}
 
 
 def _session_blocker(pipe: str) -> dict | None:
@@ -254,6 +278,19 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, {"error": "campo 'message' obrigatório"})
                 return
             self._send(200, _agent_reply(message))
+            return
+
+        if self.path == "/search":
+            query = str(body.get("query", "")).strip()
+            if not query:
+                self._send(400, {"error": "campo 'query' obrigatório"})
+                return
+            max_results = body.get("max_results", 5)
+            try:
+                max_results = int(max_results)
+            except (TypeError, ValueError):
+                max_results = 5
+            self._send(200, _web_search(query, max_results))
             return
 
         if self.path == "/pipe":

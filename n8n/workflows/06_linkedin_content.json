@@ -1,13 +1,13 @@
 {
-  "name": "DIOVAN — 06 Esteira de Conteudo LinkedIn",
+  "name": "DIOVAN — 06 Esteira LinkedIn (planilha → busca → Claude)",
   "nodes": [
     {
       "id": "sched",
-      "name": "Seg/Qua/Sex 09h",
+      "name": "Diário 09h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
       "position": [
-        240,
+        200,
         300
       ],
       "parameters": {
@@ -15,19 +15,117 @@
           "interval": [
             {
               "field": "cronExpression",
-              "expression": "0 9 * * 1,3,5"
+              "expression": "0 9 * * *"
             }
           ]
         }
       }
     },
     {
-      "id": "claude",
-      "name": "Gerar rascunho (Claude)",
+      "id": "read",
+      "name": "Ler ideias (Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "notes": "CONFIGURAR: credencial Google Sheets + planilha de ideias. Colunas: id, ideia, keywords_busca, status, data_para_post, post_id, data_publicada, post_gerado"
+    },
+    {
+      "id": "filter",
+      "name": "Filtrar pendentes",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        620,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "naopostado",
+              "leftValue": "={{ ($json.status || '').toLowerCase() }}",
+              "rightValue": "postado",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "dataok",
+              "leftValue": "={{ $json.data_para_post }}",
+              "rightValue": "={{ $now.toFormat('yyyy-MM-dd') }}",
+              "operator": {
+                "type": "string",
+                "operation": "le"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "limit",
+      "name": "Um por vez",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "maxItems": 1
+      }
+    },
+    {
+      "id": "search",
+      "name": "Pesquisa (DDGS via API)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
+        1020,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DIOVAN_API_URL || 'http://127.0.0.1:5680' }}/search",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={ \"query\": {{ JSON.stringify($json.keywords_busca || $json.ideia) }}, \"max_results\": 5 }",
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "claude",
+      "name": "Gerar post (Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1240,
         300
       ],
       "parameters": {
@@ -53,17 +151,19 @@
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
-        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1200,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": \"Voce e o estrategista de conteudo do My Fitness Suite (mfSuite!), SaaS de gestao financeira para personal trainers e consultores fitness no Brasil. Gere UM post para LinkedIn (max 1300 caracteres, tom direto, sem hashtags em excesso, foco em dor real de gestao: cobranca, inadimplencia, planilha, organizacao de alunos). Comece com um gancho forte na primeira linha. Termine com uma pergunta que gere comentario. Responda APENAS com o texto do post, sem titulo nem aspas.\"\n  }]\n}"
-      },
-      "notes": "Requer ANTHROPIC_API_KEY no .env.n8n. Insumo pode evoluir: puxar dores reais via HTTP GET na API DIOVAN (comentarios MFS)."
+        "body": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 1300,\n  \"messages\": [{\n    \"role\": \"user\",\n    \"content\": {{ JSON.stringify(\"Voce e o estrategista de conteudo do My Fitness Suite (mfSuite!), SaaS de gestao financeira para personal trainers e consultores fitness no Brasil. Escreva UM post para LinkedIn (max 1300 caracteres, tom direto, gancho forte na 1a linha, termine com pergunta que gere comentario, sem hashtags em excesso). Foque em dor real de gestao (cobranca, inadimplencia, planilha, organizacao de alunos).\\n\\nIDEIA/BRIEFING: \" + ($('Filtrar pendentes').item.json.ideia || \"\") + \"\\n\\nCONTEXTO DE PESQUISA (use se relevante, nao copie literalmente):\\n\" + JSON.stringify($json.results || []) + \"\\n\\nResponda APENAS com o texto final do post, sem titulo nem aspas.\") }}\n  }]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      }
     },
     {
       "id": "approve",
-      "name": "Enviar p/ aprovacao (Telegram)",
+      "name": "Aprovação Telegram (Fase 1)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
+        1460,
         300
       ],
       "parameters": {
@@ -71,28 +171,120 @@
         "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "contentType": "json",
-        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": \"📝 RASCUNHO LinkedIn — revisar e publicar:\\n\\n{{ $json.content[0].text }}\", \"parse_mode\": \"HTML\" }"
+        "body": "={ \"chat_id\": \"{{ $env.TELEGRAM_CHAT_ID }}\", \"text\": {{ JSON.stringify(\"📝 Post pronto p/ \" + ($('Filtrar pendentes').item.json.data_para_post || \"hoje\") + \" (ideia: \" + ($('Filtrar pendentes').item.json.id || \"?\") + \")\\n\\n\" + $json.content[0].text + \"\\n\\n— revise e publique no LinkedIn\") }} }"
       },
-      "notes": "Semi-automatico: fundador revisa e publica. FASE 2: publicacao automatica via LinkedIn API (requer OAuth/app aprovado) + no de aprovacao com Wait."
+      "notes": "FASE 1: rascunho pro Telegram (sem esperar app review LinkedIn). FASE 2: trocar por nó LinkedIn 'Create Post' e usar o post_id retornado."
+    },
+    {
+      "id": "update",
+      "name": "Marcar postado (Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1680,
+        300
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "id"
+          ],
+          "value": {
+            "id": "={{ $('Filtrar pendentes').item.json.id }}",
+            "status": "postado",
+            "data_publicada": "={{ $now.toFormat('yyyy-MM-dd') }}",
+            "post_gerado": "={{ $('Gerar post (Claude)').item.json.content[0].text }}"
+          }
+        },
+        "options": {}
+      },
+      "notes": "FASE 2: adicionar post_id = id retornado pelo LinkedIn. Match pela coluna 'id'."
     }
   ],
   "connections": {
-    "Seg/Qua/Sex 09h": {
+    "Diário 09h": {
       "main": [
         [
           {
-            "node": "Gerar rascunho (Claude)",
+            "node": "Ler ideias (Sheets)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Gerar rascunho (Claude)": {
+    "Ler ideias (Sheets)": {
       "main": [
         [
           {
-            "node": "Enviar p/ aprovacao (Telegram)",
+            "node": "Filtrar pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar pendentes": {
+      "main": [
+        [
+          {
+            "node": "Um por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Um por vez": {
+      "main": [
+        [
+          {
+            "node": "Pesquisa (DDGS via API)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pesquisa (DDGS via API)": {
+      "main": [
+        [
+          {
+            "node": "Gerar post (Claude)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar post (Claude)": {
+      "main": [
+        [
+          {
+            "node": "Aprovação Telegram (Fase 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aprovação Telegram (Fase 1)": {
+      "main": [
+        [
+          {
+            "node": "Marcar postado (Sheets)",
             "type": "main",
             "index": 0
           }

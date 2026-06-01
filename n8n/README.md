@@ -67,10 +67,43 @@ As três camadas:
 |---|---|
 | `05_leads_integration.json` | Google Sheets (novos leads) → filtro → notifica/CRM |
 
-**Camada 3 — Conteúdo LinkedIn** (greenfield):
+**Camada 3 — Conteúdo LinkedIn** (esteira completa):
 | Arquivo | Fluxo |
 |---|---|
-| `06_linkedin_content.json` | Claude gera rascunho → Telegram p/ aprovação (semi-auto) |
+| `06_linkedin_content.json` | Sheets (ideias) → filtro → busca DDGS → Claude → publica → Sheets update |
+
+### Esteira de LinkedIn — setup
+
+**1. Planilha de ideias (Google Sheets)** — crie uma aba com este cabeçalho na linha 1:
+
+| id | ideia | keywords_busca | status | data_para_post | post_id | data_publicada | post_gerado |
+|----|-------|----------------|--------|----------------|---------|----------------|-------------|
+
+- `ideia` — o briefing do post. `keywords_busca` — termos p/ enriquecer (opcional).
+- `status` — deixe **vazio** para pendente; o fluxo grava `postado`.
+- `data_para_post` — `YYYY-MM-DD`. O fluxo só pega linhas pendentes com data ≤ hoje.
+
+**2. Pré-requisito: API DIOVAN no ar** (fornece o `/search` com DDGS):
+```bash
+make api-install && sudo systemctl enable --now diovan-api
+curl -sX POST http://127.0.0.1:5680/search -H 'Content-Type: application/json' \
+  -d '{"query":"gestão financeira personal trainer","max_results":3}'
+```
+
+**3. Credenciais no n8n** (UI → Credentials):
+- **Google Sheets OAuth2** → conectar nos nós "Ler ideias" e "Marcar postado" + selecionar a planilha
+- `ANTHROPIC_API_KEY` no `.env.n8n` (já está) — o nó Claude usa via `$env`
+
+**4. Fluxo em duas fases:**
+
+- **Fase 1 (agora, sem esperar o LinkedIn):** o último nó manda o post pronto pro
+  **Telegram** para você revisar e publicar manual. Tudo o resto já roda e é testável.
+- **Fase 2 (app LinkedIn aprovado):** troque o nó "Aprovação Telegram" por um nó
+  **LinkedIn → Create Post** (credencial LinkedIn OAuth2) e adicione `post_id` no update.
+
+> **Gargalo do LinkedIn:** a publicação automática exige um app no LinkedIn Developers
+> com permissão `w_member_social`, que passa por review (dias a semanas). A Fase 1
+> permite operar enquanto isso. Quando aprovar, é trocar um nó.
 
 **Agente conversacional Telegram** — NÃO é workflow n8n, é bot Python local
 (`diovan_bot.py` + `diovan_agent.py`). O Telegram Trigger do n8n exige webhook
