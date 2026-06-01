@@ -25,6 +25,9 @@ api-stop:
 api-install:
 	bash bin/api-setup.sh
 
+ig-login:
+	venv/bin/python3 ig_login.py
+
 api-logs:
 	@journalctl -u diovan-api -f 2>/dev/null || tail -f logs/api/api.log
 

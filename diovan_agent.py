@@ -45,7 +45,13 @@ Como LER o get_status (não exagere nem invente):
 - ultimo_run mostra a última execução real. Se for "nenhum run registrado", então
   NADA rodou ainda nesta instalação — seja honesto sobre isso.
 - Se não houve run e a sessão está stale, diga claramente: não há atividade recente
-  e talvez precise reautenticar antes de rodar."""
+  e talvez precise reautenticar antes de rodar.
+
+Se run_pipe retornar status "blocked": a sessão Instagram está expirada/ausente e o
+sistema NÃO disparou (de propósito, pra não falhar nem arriscar a conta). Repasse o
+motivo e diga ao Matheus para rodar `make ig-login` no terminal com tela. Não insista
+em disparar — o login do Instagram exige tela e interação humana (2FA), não dá pra
+fazer pelo Telegram."""
 
 TOOLS = [
     {

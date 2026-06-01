@@ -108,8 +108,39 @@ def _status_snapshot() -> dict:
         return {"error": str(e)}
 
 
+def _session_blocker(pipe: str) -> dict | None:
+    """Circuit breaker preventivo: se o pipe depende da sessão Instagram e ela
+    está ausente/expirada, NÃO dispara (evita run fadado + risco à conta).
+    Retorna um dict de bloqueio, ou None se pode seguir."""
+    base = pipe.split()[0]
+    if base != "ig":  # só o ig depende 100% da sessão; mfs/all têm fallback interno
+        return None
+
+    sess = DIOVAN_DIR / ".env.users" / "playwright" / "session.json"
+    if not sess.exists():
+        stale = True
+        motivo = "sessão Instagram ausente"
+    else:
+        age_h = (datetime.now(TZ).timestamp() - sess.stat().st_mtime) / 3600
+        stale = age_h > 24
+        motivo = f"sessão Instagram provavelmente expirada (há {int(age_h)}h)"
+
+    if stale:
+        return {
+            "status": "blocked",
+            "pipe": pipe,
+            "reason": motivo,
+            "action": "Rode `make ig-login` no terminal gráfico para reautenticar antes.",
+        }
+    return None
+
+
 def _spawn_pipe(pipe: str) -> dict:
     """Dispara o pipe em background, registra metadata e acompanha o exit code."""
+    blocked = _session_blocker(pipe)
+    if blocked:
+        return blocked
+
     run_id   = f"{datetime.now(TZ).strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
     log_path = RUNS_DIR / f"{run_id}.log"
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
